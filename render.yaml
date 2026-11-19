@@ -1,0 +1,67 @@
+# Blueprint do Render: cria o site, o banco e a rotina diária de uma vez.
+# Confira nomes de planos no painel (mudam com o tempo). Não use plano gratuito de banco em produção.
+services:
+  - type: web
+    name: negocie-aqui
+    runtime: node
+    plan: starter
+    buildCommand: npm ci --omit=dev
+    startCommand: node src/server.js
+    healthCheckPath: /api/saude
+    envVars:
+      - fromGroup: negocie-comum
+      - key: NODE_ENV
+        value: production
+      - key: SUPERADMIN_EMAIL
+        sync: false
+      - key: SUPERADMIN_PASSWORD
+        sync: false
+      - key: ASAAS_WEBHOOK_TOKEN
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+  - type: cron
+    name: negocie-aqui-rotina-diaria
+    runtime: node
+    plan: starter
+    schedule: "0 11 * * *"   # 11:00 UTC = 08:00 em Brasília
+    buildCommand: npm ci --omit=dev
+    startCommand: node scripts/rotina-diaria.js
+    envVars:
+      - fromGroup: negocie-comum
+      - key: NODE_ENV
+        value: production
+
+databases:
+  - name: negocie-db
+    plan: basic-256mb
+
+envVarGroups:
+  - name: negocie-comum
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: negocie-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: APP_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: ASAAS_BASE_URL
+        value: https://api.asaas.com/v3
+      - key: ASAAS_API_KEY
+        sync: false
+      - key: WHATSAPP_API_URL
+        sync: false
+      - key: WHATSAPP_API_TOKEN
+        sync: false
